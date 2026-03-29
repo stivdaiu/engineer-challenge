@@ -1,9 +1,9 @@
-import { getUserId } from '@/lib/auth';
-import { query } from '@/lib/db';
-import { ModelTable } from '@/components/model-table';
-import { ModelForm } from '@/components/model-form';
-import { EmptyState } from '@/components/empty-state';
-import type { ModelWithProvider, Provider } from '@/lib/types';
+import { getUserId } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { ModelTable } from "@/components/model-table";
+import { ModelForm } from "@/components/model-form";
+import { EmptyState } from "@/components/empty-state";
+import type { ModelWithProvider, Provider } from "@/lib/types";
 
 export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used in your query implementation
@@ -25,10 +25,21 @@ export default async function DashboardPage() {
   // DO NOT use AI tools. Your screen recording will be reviewed.
   // ============================================================
 
-  const models: ModelWithProvider[] = []; // TODO: Replace with your query
+  const models = await query<ModelWithProvider>(
+    `SELECT m.*, p.name AS provider_name, p.website AS provider_website
+  FROM models m
+  JOIN providers p ON m.provider_id = p.id
+  WHERE m.added_by = $1
+  ORDER BY CASE m.status
+WHEN 'evaluating' THEN 1
+WHEN 'approved' THEN 2
+WHEN 'deprecated' THEN 3
+END, m.created_at DESC`,
+    [userId],
+  );
 
   const providers = await query<Provider>(
-    'SELECT id, name, website FROM providers ORDER BY name',
+    "SELECT id, name, website FROM providers ORDER BY name",
   );
 
   return (
@@ -42,11 +53,7 @@ export default async function DashboardPage() {
 
       <ModelForm providers={providers} />
 
-      {models.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <ModelTable models={models} />
-      )}
+      {models.length === 0 ? <EmptyState /> : <ModelTable models={models} />}
     </div>
   );
 }

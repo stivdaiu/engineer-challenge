@@ -73,6 +73,27 @@ CREATE INDEX idx_models_status ON models(status);
 
 -- YOUR SQL GOES BELOW THIS LINE
 
+CREATE TABLE deployments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  model_id UUID NOT NULL,
+  environment VARCHAR(20) NOT NULL
+    CHECK (environment IN ('development', 'staging', 'production')),
+    deployed_by UUID NOT NULL,
+  deployed_at TIMESTAMPTZ DEFAULT NOW(),
+  status VARCHAR(20) NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'inactive', 'failed')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT fk_deployments_model_id FOREIGN KEY (model_id)
+    REFERENCES models(id) ON DELETE CASCADE,
+    CONSTRAINT fk_deployments_deployed_by FOREIGN KEY (deployed_by)
+    REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT unique_model_environment UNIQUE (model_id, environment)
+);
+
+CREATE INDEX idx_deployments_model_id ON deployments(model_id);
+CREATE INDEX idx_deployments_deployed_by ON deployments(deployed_by);
+
 
 
 -- ============================================================================
@@ -87,3 +108,8 @@ INSERT INTO providers (id, name, website) VALUES
   ('c3d4e5f6-a7b8-9012-cdef-123456789012', 'Anthropic', 'https://anthropic.com'),
   ('d4e5f6a7-b8c9-0123-defa-234567890123', 'OpenAI', 'https://openai.com'),
   ('e5f6a7b8-c9d0-1234-efab-345678901234', 'Google', 'https://ai.google');
+
+  INSERT INTO models (id, name, model_id, provider_id, context_window, status, added_by) VALUES
+  (gen_random_uuid(), 'Claude Sonnet 4', 'claude-sonnet-4-6', 'c3d4e5f6-a7b8-9012-cdef-123456789012', 100000, 'approved', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+  (gen_random_uuid(), 'GPT-4 Turbo', 'gpt-4-turbo', 'd4e5f6a7-b8c9-0123-defa-234567890123', 128000, 'approved', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'),
+  (gen_random_uuid(), 'Gemini Pro', 'gemini-pro', 'e5f6a7b8-c9d0-1234-efab-345678901234', 128000, 'approved', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890');
